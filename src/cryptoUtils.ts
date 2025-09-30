@@ -44,29 +44,51 @@ function concatBuffers(...buffers: any[]) {
   return out.buffer;
 }
 
-async function deriveKey(password: string, salt: ArrayBuffer) {
+async function deriveKey(password: string, salt: ArrayBuffer, keyLength: number, iterations: number) {
   // password: string, salt: ArrayBuffer
   const pwKey = await crypto.subtle.importKey(
-    'raw',
+    "raw",
     textEncoder.encode(password),
-    { name: 'PBKDF2' },
+    { name: "PBKDF2" },
     false,
-    ['deriveKey']
+    ["deriveKey"]
   );
 
   return crypto.subtle.deriveKey(
     {
-      name: 'PBKDF2',
+      name: "PBKDF2",
       salt,
-      iterations: ITERATIONS,
-      hash: 'SHA-512',
+      iterations: iterations,
+      hash: "SHA-512",
     },
     pwKey,
-    { name: 'AES-GCM', length: KEY_LENGTH_BITS },
+    { name: "AES-GCM", length: keyLength },
     false,
-    ['encrypt', 'decrypt']
+    ["encrypt", "decrypt"]
   );
 }
+
+function validateKey(keyLength: number) {
+  if (keyLength !== 128 && keyLength !== 256) {
+    return "AES key length must be 128 or 256 bits";
+  }
+  return null;
+}
+
+function validateTagLength(tagLength: number) {
+  if (tagLength && tagLength < 129) {
+    const modulus = tagLength % 32;
+    if (modulus !== 0 && tagLength !== 120) {
+      return "The tag length is invalid: Must be 32, 64, 96, 104, 112, 120, or 128 bits";
+    }
+  } else {
+    return "The tag length is invalid: Must be 32, 64, 96, 104, 112, 120, or 128 bits";
+  }
+
+  return null;
+}
+
+//
 
 /**
  * Encrypts plaintext using password-derived AES-GCM.
@@ -74,20 +96,41 @@ async function deriveKey(password: string, salt: ArrayBuffer) {
  *
  * @param {string} plaintext
  * @param {string} password
+ * @param {number} keyLength default value 256. AES key length must be 128 or 256 bits
+ * @param {number} saltLength default value 16
+ * @param {number} ivLength default value 12
+ * @param {number} tagLength default value 128. The tag length Must be 32, 64, 96, 104, 112, 120, or 128 bits
+ * @param {number} iterations default value 1000
  * @returns {Promise<string>} base64(salt|iv|ciphertext)
  */
-export async function encrypt(plaintext: string, password: string) {
-  const salt = crypto.getRandomValues(new Uint8Array(SALT_LENGTH));
-  const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
+export async function encrypt(
+  plaintext: string,
+  password: string,
+  keyLength = KEY_LENGTH_BITS,
+  saltLength = SALT_LENGTH,
+  ivLength = IV_LENGTH,
+  tagLength = GCM_TAG_LENGTH,
+  iterations = ITERATIONS
+) {
+  const isKeyValid = validateKey(keyLength);
+  if (isKeyValid) {
+    return Promise.reject(new Error(isKeyValid));
+  }
+  const isTagValid = validateTagLength(tagLength);
+  if (isTagValid) {
+    return Promise.reject(new Error(isTagValid));
+  }
+  const salt = crypto.getRandomValues(new Uint8Array(saltLength));
+  const iv = crypto.getRandomValues(new Uint8Array(ivLength));
 
-  const key = await deriveKey(password, salt.buffer);
+  const key = await deriveKey(password, salt.buffer, keyLength, iterations);
 
   const encodedPlain = textEncoder.encode(plaintext);
   const cipherBuffer = await crypto.subtle.encrypt(
     {
-      name: 'AES-GCM',
+      name: "AES-GCM",
       iv: iv,
-      tagLength: GCM_TAG_LENGTH,
+      tagLength: tagLength,
     },
     key,
     encodedPlain
@@ -103,24 +146,45 @@ export async function encrypt(plaintext: string, password: string) {
  *
  * @param {string} combinedB64 - base64 string produced by encryptAesGcm
  * @param {string} password
+ * @param {number} keyLength default value 256. AES key length must be 128 or 256 bits
+ * @param {number} saltLength default value 16
+ * @param {number} ivLength default value 12
+ * @param {number} tagLength default value 128. The tag length Must be 32, 64, 96, 104, 112, 120, or 128 bits
+ * @param {number} iterations default value 1000
  * @returns {Promise<string>} plaintext
  */
-export async function decrypt(combinedB64: String, password: string) {
+export async function decrypt(
+  combinedB64: string,
+  password: string,
+  keyLength = KEY_LENGTH_BITS,
+  saltLength = SALT_LENGTH,
+  ivLength = IV_LENGTH,
+  tagLength = GCM_TAG_LENGTH,
+  iterations = ITERATIONS
+) {
+  const isKeyValid = validateKey(keyLength);
+  if (isKeyValid) {
+    return Promise.reject(new Error(isKeyValid));
+  }
+  const isTagValid = validateTagLength(tagLength);
+  if (isTagValid) {
+    return Promise.reject(new Error(isTagValid));
+  }
   const combinedBuff = fromBase64(combinedB64);
   const combined = new Uint8Array(combinedBuff);
 
   // Extract salt, iv, ciphertext
-  const salt = combined.slice(0, SALT_LENGTH).buffer;
-  const iv = combined.slice(SALT_LENGTH, SALT_LENGTH + IV_LENGTH).buffer;
-  const cipher = combined.slice(SALT_LENGTH + IV_LENGTH).buffer;
+  const salt = combined.slice(0, saltLength).buffer;
+  const iv = combined.slice(saltLength, saltLength + ivLength).buffer;
+  const cipher = combined.slice(saltLength + ivLength).buffer;
 
-  const key = await deriveKey(password, salt);
+  const key = await deriveKey(password, salt, keyLength, iterations);
 
   const plainBuffer = await crypto.subtle.decrypt(
     {
-      name: 'AES-GCM',
+      name: "AES-GCM",
       iv: iv,
-      tagLength: GCM_TAG_LENGTH,
+      tagLength: tagLength,
     },
     key,
     cipher
