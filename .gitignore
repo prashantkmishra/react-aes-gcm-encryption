@@ -1,0 +1,4 @@
+/dist
+/node_modules
+/package-lock.json
+/react-aes-gcm-encryption-1.0.0.tgz
