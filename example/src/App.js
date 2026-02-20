@@ -73,51 +73,79 @@ function App() {
               value={key}
               onChange={(e) => setKey(e.target.value)}
             />
-            <select
-              className="input"
-              value={keyLength}
-              onChange={(e) => setKeyLength(Number(e.target.value))}
-            >
-              <option value="256">256</option>
-              <option value="128">128</option>
-            </select>
-            <select
-              className="input"
-              value={tagLength}
-              onChange={(e) => setTagLength(Number(e.target.value))}
-            >
-              <option value="128">128</option>
-              <option value="120">120</option>
-              <option value="112">112</option>
-              <option value="104">104</option>
-              <option value="96">96</option>
-              <option value="64">64</option>
-              <option value="32">32</option>
-            </select>
-            <input
-              className="input"
-              type="number"
-              placeholder="Salt length"
-              value={saltLength}
-              onChange={(e) => setSaltLength(Number(e.target.value))}
-            />
+            <div className="field">
+              <label htmlFor="keyLength" className="label">
+                Select Key Length
+              </label>
+              <select
+                htmlFor="keyLength"
+                className="input"
+                value={keyLength}
+                onChange={(e) => setKeyLength(Number(e.target.value))}
+              >
+                <option value="256">256</option>
+                <option value="128">128</option>
+              </select>
+            </div>
 
-            <input
-              className="input"
-              type="number"
-              placeholder="IV length"
-              value={ivLength}
-              onChange={(e) => setIvLength(Number(e.target.value))}
-            />
-
-            <input
-              className="input"
-              type="number"
-              placeholder="Iterations count"
-              value={iterations}
-              onChange={(e) => setIterations(Number(e.target.value))}
-            />
-
+            <div className="field">
+              <label htmlFor="tagLength" className="label">
+                Select Tag Length
+              </label>
+              <select
+                className="input"
+                id="tagLength"
+                value={tagLength}
+                onChange={(e) => setTagLength(Number(e.target.value))}
+              >
+                <option value="128">128</option>
+                <option value="120">120</option>
+                <option value="112">112</option>
+                <option value="104">104</option>
+                <option value="96">96</option>
+                <option value="64">64</option>
+                <option value="32">32</option>
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="saltLength" className="label">
+                Salt Length
+              </label>
+              <input
+                id="saltLength"
+                className="input"
+                type="number"
+                placeholder="Salt length"
+                value={saltLength}
+                onChange={(e) => setSaltLength(Number(e.target.value))}
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="ivLength" className="label">
+                IV Length
+              </label>
+              <input
+                id="ivLength"
+                className="input"
+                type="number"
+                placeholder="IV length"
+                value={ivLength}
+                onChange={(e) => setIvLength(Number(e.target.value))}
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="iterationCount" className="label">
+                Iteration Count
+              </label>
+              <input
+                className="input"
+                id="iterationCount"
+                type="number"
+                placeholder="Iterations count"
+                value={iterations}
+                onChange={(e) => setIterations(Number(e.target.value))}
+              />
+            </div>
             <div className="toggleRow">
               <span>Mode: {isEncryptMode ? "Encrypt 🔐" : "Decrypt 🔓"}</span>
 
